@@ -2,6 +2,9 @@ package edu.smg;
 
 import java.awt.Graphics;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.PriorityQueue;
+
 import javax.swing.Timer;
 import java.awt.event.*;
 
@@ -10,7 +13,7 @@ import javax.swing.JPanel;
 @SuppressWarnings("serial")
 class BallPanel extends JPanel {
 	private int delay = 10;
-	private ArrayList<Ball> list = new ArrayList<Ball>();
+	private PriorityQueue<Ball> queue = new PriorityQueue<>(Collections.reverseOrder());
 // Create a timer with the initial delay
 	protected Timer timer = new Timer(delay, new TimerListener());
 
@@ -27,11 +30,10 @@ class BallPanel extends JPanel {
 			public void mouseClicked(MouseEvent e) {
 				int x = e.getX();
 				int y = e.getY();
-				for(int i = 0; i < list.size(); i++) {
-					Ball ball = (Ball) list.get(i);
+				for(Ball ball: queue) {
 					double distance = distance(x, y, ball.x, ball.y);
 					if(distance <= ball.radius) {
-						list.remove(ball);
+						queue.remove(ball);
 						break;
 					}
 				}
@@ -64,19 +66,18 @@ class BallPanel extends JPanel {
 	}
 
 	public void add() {
-		list.add(new Ball());
+		queue.offer(new Ball(getHeight(), getWidth()));
 	}
 
 	public void subtract() {
-		if (list.size() > 0)
-			list.remove(list.size() - 1); // Remove the last ball
+		if (queue.size() > 0)
+			queue.poll(); // Remove the last ball
 	}
 
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		for (int i = 0; i < list.size(); i++) {
-			Ball ball = (Ball) list.get(i); // Get a ball
+		for (Ball ball: queue) { // Get a ball
 			g.setColor(ball.color); // Set ball color
 			// Check boundaries
 			if (ball.x < 0 || ball.x > getWidth())
@@ -90,18 +91,20 @@ class BallPanel extends JPanel {
 		}
 		
 		ArrayList<Ball> ballsToRemove = new ArrayList<>();
-		for(int i = 0; i < list.size(); i++) {
-			Ball ball = (Ball) list.get(i);
-			for(int j = i + 1; j < list.size(); j++) {
-				Ball ball2 = (Ball) list.get(j);
-				double distance = distance(ball.x, ball.y, ball2.x, ball2.y);
-				if(distance <= ball.radius + ball2.radius) {
-					ballsToRemove.add(ball2);
-					ball.radius += ball2.radius;
+		for(Ball ball: queue) {
+			if(!ballsToRemove.contains(ball)) {
+				for(Ball ball2: queue) {
+					if(ball != ball2) {
+						double distance = distance(ball.x, ball.y, ball2.x, ball2.y);
+						if(distance <= ball.radius + ball2.radius) {
+							ballsToRemove.add(ball2);
+							ball.radius += ball2.radius;
+						}
+					}
 				}
 			}
 		}
-		list.removeAll(ballsToRemove);
+		queue.removeAll(ballsToRemove);
 		
 	}
 
